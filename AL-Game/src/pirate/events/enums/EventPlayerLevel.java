@@ -24,13 +24,13 @@ package pirate.events.enums;
 public enum EventPlayerLevel {
 
     L_DEFAULT(false, 20, 60),
-    L20_30(true, 20, 30),
-    L30_40(true, 31, 40),
-    L40_50(true, 41, 50),
-    L50_55(true, 51, 55),
-    L55_60(true, 56, 60),
-    L60_65(true, 61, 65),
-    L65_75(true, 65, 75);
+    L20_30(true, 20, 30),	
+	L30_40(true, 31, 40),	
+	L40_50(true, 41, 50),	
+	L50_55(true, 51, 55),	
+	L55_60(true, 56, 60),	
+	L60_66(true, 60, 66),	
+	L66_76(true, 66, 76);
     private boolean regular;
     private int min;
     private int max;
