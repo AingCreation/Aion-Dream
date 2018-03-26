@@ -48,13 +48,19 @@ public enum ChatType {
 	 * Global chat types
 	 */
 	UNION_WAR(0x19, true), // Union War message (Blue)
-
-	WHITE(0x1E, true), // System message (White), visible in "All" chat thumbnail only !
-	YELLOW(0x1F, true), // System message (Yellow), visible in "All" chat thumbnail only !
-	BRIGHT_YELLOW(0x20, true), // System message (Light Yellow), visible in "All" chat thumbnail only !
-	WHITE_CENTER(0x21, true), // Periodic Notice (White && Box on screen center)
-	YELLOW_CENTER(0x22, true), // Periodic Announcement(Yellow && Box on screen center)
-	BRIGHT_YELLOW_CENTER(0x23, true); // System Notice (Light Yellow && Box on screen center)
+	
+	/**
+	 * New Code
+	 */
+	GOLDEN_YELLOW(0x22, true),  
+	WHITE(0x23, true), 
+	YELLOW(0x24, true), 
+	BRIGHT_YELLOW(0x25, true),
+	WHITE_CENTER(0x26, true),
+	YELLOW_CENTER(0x27, true), 
+	BRIGHT_YELLOW_CENTER(0x28, true), 
+	BRIGHT_YELLOW_CENTER_NEW(0x29, true),  
+	GMRESPONSE(0x1C);
 
 	private final int intValue;
 	private boolean sysMsg;
