@@ -33,6 +33,11 @@ import com.aionemu.gameserver.model.stats.calc.Stat2;
 import com.aionemu.gameserver.model.team.legion.LegionEmblemType;
 import com.aionemu.gameserver.network.aion.AionConnection;
 import com.aionemu.gameserver.network.aion.AionServerPacket;
+import com.aionemu.gameserver.services.custom.FFAGroupManager;
+import com.aionemu.gameserver.services.custom.FFASoloManager;
+import com.aionemu.gameserver.services.custom.FfaLegionService;
+import com.aionemu.gameserver.services.custom.MixFight3;
+import com.aionemu.gameserver.services.custom.PVPAllEnemy;
 import com.aionemu.gameserver.services.thedevils.ffa.FFaService;
 
 import javolution.util.FastList;
@@ -75,23 +80,38 @@ public class SM_PLAYER_INFO extends AionServerPacket {
 		}
 		PlayerCommonData pcd = player.getCommonData();
 		final int raceId;
-		if (player.getAdminNeutral() > 1 || activePlayer.getAdminNeutral() > 1 || player.isInPvEMode() || activePlayer.isInPvEMode()) {
+		if (player.getAdminNeutral() > 1 || activePlayer.getAdminNeutral() > 1) {
 			raceId = activePlayer.getRace().getRaceId();
-		} 
-		else if (activePlayer.isInFFA() || activePlayer.isInPkMode()){
-            if (player.getRace() == activePlayer.getRace() && player != activePlayer) {
-                raceId = (player.getRace().getRaceId() == 0 ? 1 : 0);
-            } else if (player != activePlayer) {
-                raceId = player.getRace().getRaceId();
-            } else {
-                raceId = activePlayer.getRace().getRaceId();
-            }
-		}
-		else if (activePlayer.isEnemy(player)) {	
-			raceId = (activePlayer.getRace().getRaceId() == 0 ? 1 : 0);
-		}
-		else {
-			raceId = player.getRace().getRaceId();
+		} else {
+			if (player.getAdminNeutral() > 1 || player.isInPvEMode()) {
+				raceId = activePlayer.getRace().getRaceId();
+			} else {
+				if (activePlayer.getAdminNeutral() > 1 || activePlayer.isInPvEMode()) {
+					raceId = activePlayer.getRace().getRaceId();
+				} else {
+					if (activePlayer.isInSameTeam(player)) {
+						raceId = activePlayer.getRace().getRaceId();
+					} else {
+						if (activePlayer.isInFFA() || activePlayer.isInPkMode() || activePlayer.getTransformModel().getModelId() == 202635) {
+							if (player.getRace() == activePlayer.getRace() && player != activePlayer) {
+								raceId = player.getRace().getRaceId() == 0 ? 1 : 0;
+							} else {
+								if (player != activePlayer) {
+									raceId = player.getRace().getRaceId();
+								} else {
+									raceId = activePlayer.getRace().getRaceId();
+								}
+							}
+						} else {
+							if (activePlayer.isEnemy(player)) {
+								raceId = activePlayer.getRace().getRaceId() == 0 ? 1 : 0;
+							} else {
+								raceId = player.getRace().getRaceId();
+							}
+						}
+					}
+				}
+			}
 		}
 
 		final int genderId = pcd.getGender().getGenderId();
@@ -109,15 +129,15 @@ public class SM_PLAYER_INFO extends AionServerPacket {
 		/**
 		 * Transformed state - send transformed model id Regular state - send player model id (from common data)
 		 */
-		int model = player.getTransformModel().getModelId();
+		int model = (FFASoloManager.isInFFA(player)) || (FFAGroupManager.isInFFA(player)) || (player.getPosition().getWorldMapInstance().getInstanceHandler().hideNamePlayer()) ? FFASoloManager.getMorph(player) : player.getTransformModel().getModelId();
 
 		writeD(model != 0 ? model : pcd.getTemplateId());
 		writeC(0x00); // new 2.0 Packet --- probably pet info?
 		writeB(new byte[19]);// TODO (Changed from 11 to 19 on 5.6)
 		writeD(player.getTransformModel().getType().getId());
-		if (player.isInFFA() || activePlayer.isInFFA() || player.isInPkMode() || activePlayer.isInPkMode()){
-            writeC(0x00);
-        }else{
+		if (player.isInFFA() || activePlayer.isInFFA() || player.isInPkMode() || activePlayer.isInPkMode() || player.getTransformModel().getModelId() == 202635 || activePlayer.getTransformModel().getModelId() == 202635) {
+			writeC(0);
+		} else {
             writeC(enemy ? 0x00 : 0x26);
         }
 
@@ -196,14 +216,22 @@ public class SM_PLAYER_INFO extends AionServerPacket {
 		}
 		
 		// * == FFA TAGS , UNIQUE NAME INSIDE
-        if (player.isInFFA()){
-            writeS(playerName);
-        } else {
-            writeS(String.format(nameFormat, player.getName()));
-        }
-
-		//writeS(String.format(nameFormat, player.getName()));
-
+		String name = player.getName();
+		String modifyName = player.getPosition().getWorldMapInstance().getInstanceHandler().modifyPlayerName(player);
+		if (modifyName != null) {
+	      name = modifyName;
+	      writeS(name);
+	    } else if (player.isInFFA()) {
+	    	name = player.getPlayerClass().getRusname();
+	    } else if (FFASoloManager.isInFFA(player) || MixFight3.isInFFA(player) || PVPAllEnemy.isInPvpAllEnemy(player)) {
+	      name = player.getPlayerClass().getRusname();
+	    } else if (FFAGroupManager.isInFFA(player) || player.getPosition().getWorldMapInstance().getInstanceHandler().hideNamePlayer()) {
+	      name = "Daevas";
+	    } else if (FfaLegionService.isInFFA(player) && player.getLegion() != null) {
+	      name = player.getLegionMember().getRank().getRusname();
+	    }
+		
+		writeS(String.format(nameFormat, new Object[] { name }));
 		writeH(pcd.getTitleId());
 		writeH(player.getCommonData().isHaveMentorFlag() ? 1 : 0);
 
@@ -428,9 +456,11 @@ public class SM_PLAYER_INFO extends AionServerPacket {
             writeH(0);//config for auto deny invities
             writeH(0);//abyss rank
         }else{
-		writeH(player.getPlayerSettings().getDisplay()); // unk - 0x04
-		writeH(player.getPlayerSettings().getDeny()); // unk - 0x00
-		writeH(player.getAbyssRank().getRank().getId()); // abyss rank
+        	writeH(player.getPlayerSettings().getDisplay()); // unk - 0x04
+        	writeH(player.getPlayerSettings().getDeny()); // unk - 0x00
+        	writeH(FFASoloManager.isInFFA(player) || FFAGroupManager.isInFFA(player) || MixFight3.isInFFA(player) ? 0 : player.getAbyssRank().getRank().getId());
+		
+        	writeH(player.getAbyssRank().getRank().getId()); // abyss rank
         }
 
 		writeH(0x00); // unk - 0x01

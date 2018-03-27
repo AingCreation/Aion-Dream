@@ -30,6 +30,8 @@ import com.aionemu.gameserver.network.aion.serverpackets.SM_MESSAGE;
 import com.aionemu.gameserver.network.aion.serverpackets.SM_SYSTEM_MESSAGE;
 import com.aionemu.gameserver.restrictions.RestrictionsManager;
 import com.aionemu.gameserver.services.NameRestrictionService;
+import com.aionemu.gameserver.services.custom.FFASoloManager;
+import com.aionemu.gameserver.services.custom.PVPAllEnemy;
 import com.aionemu.gameserver.utils.ChatUtil;
 import com.aionemu.gameserver.utils.PacketSendUtility;
 import com.aionemu.gameserver.utils.Util;
@@ -105,6 +107,12 @@ public class CM_CHAT_MESSAGE_WHISPER extends AionClientPacket {
 		}
 		else if ((!CustomConfig.SPEAKING_BETWEEN_FACTIONS) && (sender.getRace().getRaceId() != receiver.getRace().getRaceId()) && (sender.getAccessLevel() < AdminConfig.GM_LEVEL) && (receiver.getAccessLevel() < AdminConfig.GM_LEVEL)) {
 			sendPacket(SM_SYSTEM_MESSAGE.STR_NO_SUCH_USER(formatname));
+		}	
+		else if (FFASoloManager.isInFFA(sender) && FFASoloManager.isInFFA(receiver)) {
+			PacketSendUtility.sendMessage(sender, "You can not use chat whisper in FFA zone");
+	    } 
+		else if (PVPAllEnemy.isInPvpAllEnemy(sender) && PVPAllEnemy.isInPvpAllEnemy(receiver)) {
+	    	PacketSendUtility.sendMessage(sender,"You cannot use chat when you in PvP All Enemy.");
 		}
 		else {
 			if (RestrictionsManager.canChat(sender)) {
