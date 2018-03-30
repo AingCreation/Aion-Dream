@@ -14,9 +14,12 @@
  *  along with Aion-Lightning.
  *  If not, see <http://www.gnu.org/licenses/>.
  */
+
 package com.aionemu.gameserver.services.instance;
 
 import java.util.Iterator;
+
+import javolution.util.FastList;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,23 +41,15 @@ import com.aionemu.gameserver.network.aion.SystemMessageId;
 import com.aionemu.gameserver.network.aion.serverpackets.SM_SYSTEM_MESSAGE;
 import com.aionemu.gameserver.services.AutoGroupService;
 import com.aionemu.gameserver.services.HousingService;
-import com.aionemu.gameserver.services.thedevils.ffa.FFaStruct;
 import com.aionemu.gameserver.services.teleport.TeleportService2;
 import com.aionemu.gameserver.spawnengine.SpawnEngine;
 import com.aionemu.gameserver.spawnengine.StaticDoorSpawnManager;
 import com.aionemu.gameserver.spawnengine.WalkerFormator;
 import com.aionemu.gameserver.utils.PacketSendUtility;
 import com.aionemu.gameserver.utils.ThreadPoolManager;
-import com.aionemu.gameserver.world.World;
-import com.aionemu.gameserver.world.WorldMap;
-import com.aionemu.gameserver.world.WorldMap2DInstance;
-import com.aionemu.gameserver.world.WorldMapInstance;
-import com.aionemu.gameserver.world.WorldMapInstanceFactory;
-import com.aionemu.gameserver.world.WorldMapType;
+import com.aionemu.gameserver.world.*;
 import com.aionemu.gameserver.world.zone.ZoneInstance;
 import pirate.events.holders.IEventHolder;
-
-import javolution.util.FastList;
 
 /**
  * @author ATracer
@@ -64,7 +59,7 @@ public class InstanceService {
 	private static final Logger log = LoggerFactory.getLogger("INSTANCE_LOG");
 	private static final FastList<Integer> instanceAggro = new FastList<Integer>();
 	private static final FastList<Integer> instanceCoolDownFilter = new FastList<Integer>();
-	private static final int SOLO_INSTANCES_DESTROY_DELAY = 10 * 60 * 1000; // 10 minutes
+    private static final int SOLO_INSTANCES_DESTROY_DELAY = 10 * 60 * 1000; // 10 minutes
 
 	public static void load() {
 		for (String s : CustomConfig.INSTANCES_MOB_AGGRO.split(",")) {
@@ -77,8 +72,7 @@ public class InstanceService {
 
 	/**
 	 * @param worldId
-	 * @param ownerId
-	 *            - playerObjectId or Legion id in future
+     * @param ownerId - playerObjectId or Legion id in future
 	 * @return
 	 */
 	public synchronized static WorldMapInstance getNextAvailableInstance(int worldId, int ownerId) {
@@ -97,14 +91,13 @@ public class InstanceService {
 		InstanceEngine.getInstance().onInstanceCreate(worldMapInstance);
 
 		// finally start the checker
-		if (map.isInstanceType() && worldId != FFaStruct.worldId) {
+		if (map.isInstanceType()) {
 			startInstanceChecker(worldMapInstance);
 		}
 
 		return worldMapInstance;
 	}
-	
-	// EventEngine
+    // EventEngine
     public synchronized static WorldMapInstance getNextAvailableEventInstance(IEventHolder holder) {
         int worldId = holder.getEventType().getEventTemplate().getMapId();
         int eventHandlerId = holder.getEventType().getEventTemplate().getEventId();
@@ -130,8 +123,7 @@ public class InstanceService {
         }
 
         return worldMapInstance;
-    }
-
+    }        	
 	public synchronized static WorldMapInstance getNextAvailableInstance(int worldId) {
 		return getNextAvailableInstance(worldId, 0);
 	}
@@ -162,8 +154,7 @@ public class InstanceService {
 				Player player = (Player) obj;
 				PacketSendUtility.sendPacket(player, new SM_SYSTEM_MESSAGE(SystemMessageId.LEAVE_INSTANCE_NOT_PARTY));
 				moveToExitPoint((Player) obj);
-			}
-			else {
+			} else {
 				obj.getController().onDelete();
 			}
 		}
@@ -256,17 +247,14 @@ public class InstanceService {
 		boolean isPersonal = WorldMapType.getWorld(player.getWorldId()).isPersonal();
 		if (player.isInGroup2()) {
 			lookupId = player.getPlayerGroup2().getTeamId();
-		}
-		else if (player.isInAlliance2()) {
+		} else if (player.isInAlliance2()) {
 			lookupId = player.getPlayerAlliance2().getTeamId();
 			if (player.isInLeague()) {
 				lookupId = player.getPlayerAlliance2().getLeague().getObjectId();
 			}
-		}
-		else if (isPersonal && player.getCommonData().getWorldOwnerId() != 0) {
+		} else if (isPersonal && player.getCommonData().getWorldOwnerId() != 0) {
 			lookupId = player.getCommonData().getWorldOwnerId();
-		}
-		else {
+		} else {
 			lookupId = player.getObjectId();
 		}
 		return lookupId;
@@ -331,7 +319,6 @@ public class InstanceService {
 	 * @param worldMapInstance
 	 */
 	private static void startInstanceChecker(WorldMapInstance worldMapInstance) {
-		System.out.println("Instance Checker Started");
 
 		int delay = 150000; // 2.5 minutes
 		int period = 60000; // 1 minute
@@ -372,8 +359,7 @@ public class InstanceService {
 						map.removeWorldMapInstance(instanceId);
 						destroyInstance(worldMapInstance);
 						return;
-					}
-					else {
+					} else {
 						return;
 					}
 				}
@@ -387,8 +373,7 @@ public class InstanceService {
 				}
 				map.removeWorldMapInstance(instanceId);
 				destroyInstance(worldMapInstance);
-			}
-			else if (registeredGroup.size() == 0) {
+			} else if (registeredGroup.size() == 0) {
 				map.removeWorldMapInstance(instanceId);
 				destroyInstance(worldMapInstance);
 			}
@@ -442,16 +427,5 @@ public class InstanceService {
 			instanceCooldownRate = 1;
 		}
 		return instanceCooldownRate;
-	}
-
-	public static synchronized WorldMapInstance createBattleGroundInstance(int worldId, int idInstance) {
-		WorldMap map = World.getInstance().getWorldMap(worldId);
-		log.info("Creating new BG instance: " + worldId + " " + idInstance);
-		WorldMapInstance worldMapInstance = WorldMapInstanceFactory.createWorldMapInstance(map, idInstance);
-		startInstanceChecker(worldMapInstance);
-		map.addInstance(idInstance, worldMapInstance);
-		InstanceEngine.getInstance().onInstanceCreate(worldMapInstance);
-		StaticDoorSpawnManager.spawnTemplate(worldId, idInstance);
-		return worldMapInstance;
 	}
 }
