@@ -141,6 +141,9 @@ public class ClassChangeService {
 				}
 				completeQuest(player, 1006);
 				completeQuest(player, 1007);
+				
+				//auto learn
+				SkillLearnService.addMissingSkills(player);
 
 				// Stigma Quests Elyos
 				if (player.havePermission(MembershipConfig.STIGMA_SLOT_QUEST)) {

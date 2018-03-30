@@ -824,6 +824,7 @@ public final class PlayerEnterWorldService {
 				PunishmentService.updateGatherableStatus(player);
 
 			PlayerGroupService.onPlayerLogin(player);
+			SkillLearnService.addMissingSkills(player);
 
 			// SM_PETITION
 			PetitionService.getInstance().onPlayerLogin(player);
