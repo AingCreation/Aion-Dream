@@ -14,6 +14,7 @@
  *  along with Aion-Lightning.
  *  If not, see <http://www.gnu.org/licenses/>.
  */
+
 package com.aionemu.gameserver.instance.handlers;
 
 import com.aionemu.gameserver.model.gameobjects.Creature;
