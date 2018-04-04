@@ -1,6 +1,6 @@
 package pirate.events.xml;
 
-import com.aionlightning.commons.utils.Rnd;
+import com.aionemu.commons.utils.Rnd;
 import java.util.ArrayList;
 import java.util.List;
 import javax.xml.bind.annotation.XmlAccessType;
